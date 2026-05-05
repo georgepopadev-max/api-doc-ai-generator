@@ -1,0 +1,5 @@
+{
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist/api-doc-ai-generator/browser",
+  "framework": "angular"
+}
