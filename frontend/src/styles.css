@@ -48,3 +48,35 @@ input, textarea, select, button {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ============================================
+   RESPONSIVE STYLES - Media Queries
+   ============================================ */
+
+/* Large laptops/desktops */
+@media (max-width: 1200px) {
+  * {
+    font-size: 13px;
+  }
+}
+
+/* Tablets */
+@media (max-width: 900px) {
+  * {
+    font-size: 12px;
+  }
+}
+
+/* Mobile landscape / small tablets */
+@media (max-width: 600px) {
+  * {
+    font-size: 11px;
+  }
+}
+
+/* Mobile portrait */
+@media (max-width: 480px) {
+  * {
+    font-size: 10px;
+  }
+}

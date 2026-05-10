@@ -182,6 +182,7 @@ import { Project, CreateProjectRequest } from '../../models/project.model';
       padding: 32px;
       width: 100%;
       max-width: 480px;
+      max-width: 90%;
       box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
     }
     .modal h2 { font-size: 20px; font-weight: 600; color: #1e293b; margin: 0 0 24px 0; }
@@ -200,7 +201,39 @@ import { Project, CreateProjectRequest } from '../../models/project.model';
       border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+    
+    /* Responsive styles */
+    @media (max-width: 1200px) {
+      .dashboard { max-width: 100%; padding: 0 16px; }
+      .projects-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    }
+    
+    @media (max-width: 900px) {
+      .dashboard-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .dashboard-header h1 { font-size: 24px; }
+      .projects-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+      .project-card { padding: 20px; }
+    }
+    
+    @media (max-width: 600px) {
+      .projects-grid { grid-template-columns: 1fr; }
+      .project-stats { flex-direction: column; gap: 12px; }
+      .modal { max-width: 90% !important; padding: 24px; }
+    }
+    
+    @media (max-width: 480px) {
+      .dashboard { padding: 0 12px; }
+      .dashboard-header { margin-bottom: 24px; }
+      .dashboard-header h1 { font-size: 20px; }
+      .projects-grid { gap: 12px; }
+      .project-card { padding: 16px; }
+      .project-header { flex-direction: column; gap: 8px; }
+      .project-actions { width: 100%; }
+      .project-actions .btn { flex: 1; min-width: 80px; }
+      .btn-group { flex-direction: column; }
+      .btn-group .btn { width: 100%; }
+    }
   `]
 })
 export class DashboardComponent implements OnInit {
