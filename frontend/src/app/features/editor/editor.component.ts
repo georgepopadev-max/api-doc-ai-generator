@@ -1,10 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ExportService } from '../../services/export.service';
 import { ApiService } from '../../services/api.service';
 import { GeneratedDoc } from '../../models/project.model';
+
+declare const require: any;
+declare const monaco: any;
 
 @Component({
   selector: 'app-editor',
@@ -46,8 +49,15 @@ import { GeneratedDoc } from '../../models/project.model';
 
       <div class="editor-layout">
         <div class="code-editor">
-          <textarea [(ngModel)]="specContent" (input)="onContentChange()"
-                    spellcheck="false" class="spec-textarea"></textarea>
+          @if (isLoading()) {
+            <div class="skeleton-editor">
+              <div class="skeleton-line" style="width: 60%"></div>
+              <div class="skeleton-line" style="width: 80%"></div>
+              <div class="skeleton-line" style="width: 45%"></div>
+              <div class="skeleton-line" style="width: 70%"></div>
+            </div>
+          }
+          <div #editorContainer class="monaco-container" [style.display]="isLoading() ? 'none' : 'block'"></div>
         </div>
         <div class="preview-panel">
           <h3>Preview</h3>
@@ -102,21 +112,26 @@ import { GeneratedDoc } from '../../models/project.model';
     .validation-banner.valid { background: #d1fae5; color: #059669; }
     .validation-banner.invalid { background: #fee2e2; color: #dc2626; }
     .editor-layout { display: flex; flex: 1; gap: 16px; min-height: 0; }
-    .code-editor { flex: 1; min-width: 0; }
-    .spec-textarea {
-      width: 100%;
-      height: 100%;
+    .code-editor { flex: 1; min-width: 0; position: relative; }
+    .monaco-container { width: 100%; height: 100%; border-radius: 8px; overflow: hidden; }
+    .skeleton-editor {
+      position: absolute;
+      inset: 0;
       padding: 16px;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      font-family: 'Monaco', 'Menlo', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-      resize: none;
       background: #1e1e1e;
-      color: #d4d4d4;
+      border-radius: 8px;
     }
-    .spec-textarea:focus { outline: none; border-color: #6366f1; }
+    .skeleton-line {
+      height: 14px;
+      background: #333;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
     .preview-panel {
       flex: 1;
       background: white;
@@ -155,7 +170,9 @@ import { GeneratedDoc } from '../../models/project.model';
     .btn-secondary { background: #f1f5f9; }
   `]
 })
-export class EditorComponent implements OnInit {
+export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('editorContainer') editorContainer!: ElementRef;
+  
   docId = '';
   specContent = '';
   originalContent = '';
@@ -163,6 +180,9 @@ export class EditorComponent implements OnInit {
   validationResult = '';
   isValid = false;
   previewHtml = '';
+  
+  private editor: any;
+  isLoading = signal(true);
 
   constructor(private route: ActivatedRoute, private router: Router, 
               private exportService: ExportService, private apiService: ApiService) {}
@@ -170,6 +190,56 @@ export class EditorComponent implements OnInit {
   ngOnInit() {
     this.docId = this.route.snapshot.paramMap.get('docId') || '';
     this.loadDoc();
+  }
+
+  ngAfterViewInit() {
+    this.initMonaco();
+  }
+
+  initMonaco() {
+    if (typeof window !== 'undefined' && (window as any).monaco) {
+      this.createEditor();
+    } else if (typeof window !== 'undefined') {
+      const loaderScript = document.querySelector('script[src*="monaco-editor"]');
+      if (!loaderScript) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js';
+        script.onload = () => {
+          const amdRequire = (window as any).require;
+          amdRequire.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+          amdRequire(['vs/editor/editor.main'], () => {
+            this.createEditor();
+          });
+        };
+        document.head.appendChild(script);
+      } else {
+        this.createEditor();
+      }
+    }
+  }
+
+  createEditor() {
+    const monaco = (window as any).monaco;
+    this.editor = monaco.editor.create(this.editorContainer.nativeElement, {
+      value: this.specContent,
+      language: 'yaml',
+      theme: 'vs-dark',
+      fontSize: 13,
+      fontFamily: "'Monaco', 'Menlo', monospace",
+      lineNumbers: 'on',
+      minimap: { enabled: false },
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      wordWrap: 'on',
+      padding: { top: 16, bottom: 16 }
+    });
+
+    this.editor.onDidChangeModelContent(() => {
+      this.specContent = this.editor.getValue();
+      this.onContentChange();
+    });
+
+    this.isLoading.set(false);
   }
 
   loadDoc() {
@@ -183,6 +253,9 @@ export class EditorComponent implements OnInit {
         this.specContent = yaml;
         this.originalContent = yaml;
         this.updatePreview();
+        if (this.editor) {
+          this.editor.setValue(yaml);
+        }
       },
       error: (err) => console.error('Failed to load spec', err)
     });
@@ -251,12 +324,14 @@ export class EditorComponent implements OnInit {
   resetSpec() {
     this.specContent = this.originalContent;
     this.updatePreview();
+    if (this.editor) {
+      this.editor.setValue(this.originalContent);
+    }
   }
 
   saveSpec() {
     this.exportService.updateSpec(this.docId, this.specContent).subscribe({
       next: () => {
-        alert('Specification saved successfully!');
         this.originalContent = this.specContent;
       },
       error: (err) => console.error('Failed to save', err)
@@ -265,5 +340,11 @@ export class EditorComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/']);
+  }
+
+  ngOnDestroy() {
+    if (this.editor) {
+      this.editor.dispose();
+    }
   }
 }

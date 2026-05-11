@@ -5,9 +5,11 @@ import { Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class ExportService {
   
-  private baseUrl = 'http://localhost:8080/api/export';
-
   constructor(private http: HttpClient) {}
+
+  private get baseUrl(): string {
+    return '/api';
+  }
 
   exportYaml(docId: string): Observable<string> {
     return this.http.get(`${this.baseUrl}/docs/${docId}/yaml`, { responseType: 'text' });
