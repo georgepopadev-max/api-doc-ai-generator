@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { GenerationService } from '../../services/generation.service';
 import { ApiService } from '../../services/api.service';
 import { GenerationStatus, GenerationParams, GeneratedDoc } from '../../models/project.model';
@@ -9,7 +10,7 @@ import { GenerationStatus, GenerationParams, GeneratedDoc } from '../../models/p
 @Component({
   selector: 'app-generation',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, MatSnackBarModule],
   template: `
     <div class="generation-container">
       <button class="back-btn" (click)="goBack()">
@@ -171,7 +172,8 @@ export class GenerationComponent implements OnInit {
   private pollInterval: any;
 
   constructor(private route: ActivatedRoute, private router: Router, 
-              private generationService: GenerationService, private apiService: ApiService) {}
+              private generationService: GenerationService, private apiService: ApiService,
+              private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.projectId = this.route.snapshot.paramMap.get('projectId') || '';
@@ -193,8 +195,12 @@ export class GenerationComponent implements OnInit {
       next: (doc) => {
         this.generatedDoc = doc;
         this.generationStatus = { status: 'COMPLETED', currentStep: 'Done', stepNumber: 4, totalSteps: 4, aiRequestsProcessed: 0, message: `Generated v${doc.version}` };
+        this.snackBar.open(`Documentation v${doc.version} generated successfully!`, 'View', { duration: 5000 });
       },
-      error: (err) => console.error('Generation failed', err)
+      error: (err) => {
+        console.error('Generation failed', err);
+        this.snackBar.open('Generation failed. Please try again.', 'Close', { duration: 3000 });
+      }
     });
   }
 

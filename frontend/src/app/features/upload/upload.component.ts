@@ -1,14 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 import { SourceUpload } from '../../models/project.model';
 
 @Component({
   selector: 'app-upload',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatSnackBarModule],
   template: `
     <div class="upload-container">
       <button class="back-btn" (click)="goBack()">
@@ -182,8 +183,9 @@ export class UploadComponent implements OnInit {
   selectedFile: File | null = null;
   isDragging = false;
   uploads: SourceUpload[] = [];
+  isLoading = signal(true);
 
-  constructor(private route: ActivatedRoute, private router: Router, private apiService: ApiService) {}
+  constructor(private route: ActivatedRoute, private router: Router, private apiService: ApiService, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.projectId = this.route.snapshot.paramMap.get('projectId') || '';
@@ -227,12 +229,15 @@ export class UploadComponent implements OnInit {
     this.apiService.uploadSource(this.projectId, this.selectedFile?.name || 'pasted-code.java', 
       this.selectedFile?.size || this.pastedCode.length, sourceCode).subscribe({
       next: () => {
-        alert('Source code uploaded successfully!');
+        this.snackBar.open('Source code uploaded successfully!', 'Close', { duration: 3000 });
         this.pastedCode = '';
         this.selectedFile = null;
         this.loadUploads();
       },
-      error: (err) => console.error('Upload failed', err)
+      error: (err) => {
+        console.error('Upload failed', err);
+        this.snackBar.open('Upload failed. Please try again.', 'Close', { duration: 3000 });
+      }
     });
   }
 

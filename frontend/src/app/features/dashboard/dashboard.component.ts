@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -13,7 +13,7 @@ import { Project, CreateProjectRequest } from '../../models/project.model';
     <div class="dashboard">
       <header class="dashboard-header">
         <h1>Projects</h1>
-        <button class="btn btn-primary" (click)="showCreateModal = true">
+        <button class="btn btn-primary" (click)="showCreateModal.set(true)">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
@@ -21,55 +21,93 @@ import { Project, CreateProjectRequest } from '../../models/project.model';
         </button>
       </header>
 
-      <div class="projects-grid">
-        @for (project of projects; track project.id) {
-          <div class="project-card">
-            <div class="project-header">
-              <h3>{{ project.name }}</h3>
-              <span class="status-badge" [class.ready]="project.status === 'READY'">
-                {{ project.status }}
-              </span>
+      @if (isLoading()) {
+        <div class="projects-grid">
+          <div class="skeleton-card">
+            <div class="skeleton-header">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-badge"></div>
             </div>
-            <p class="project-description">{{ project.description || 'No description' }}</p>
-            <div class="project-stats">
-              <div class="stat">
-                <span class="stat-value">{{ project.endpointCount }}</span>
-                <span class="stat-label">Endpoints</span>
-              </div>
-              <div class="stat">
-                <span class="stat-value">{{ project.aiProvider }}</span>
-                <span class="stat-label">AI Provider</span>
-              </div>
+            <div class="skeleton-text"></div>
+            <div class="skeleton-stats">
+              <div class="skeleton-stat"></div>
+              <div class="skeleton-stat"></div>
             </div>
-            @if (project.lastGenerated) {
-              <div class="last-generated">
-                Last generated: {{ formatDate(project.lastGenerated) }}
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-header">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-badge"></div>
+            </div>
+            <div class="skeleton-text"></div>
+            <div class="skeleton-stats">
+              <div class="skeleton-stat"></div>
+              <div class="skeleton-stat"></div>
+            </div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-header">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-badge"></div>
+            </div>
+            <div class="skeleton-text"></div>
+            <div class="skeleton-stats">
+              <div class="skeleton-stat"></div>
+              <div class="skeleton-stat"></div>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="projects-grid">
+          @for (project of projects; track project.id) {
+            <div class="project-card">
+              <div class="project-header">
+                <h3>{{ project.name }}</h3>
+                <span class="status-badge" [class.ready]="project.status === 'READY' || project.status === 'active'">
+                  {{ project.status }}
+                </span>
               </div>
-            }
-            <div class="project-actions">
-              <a [routerLink]="['/upload', project.id]" class="btn btn-sm">Upload Code</a>
-              @if (project.endpointCount > 0) {
-                <a [routerLink]="['/generate', project.id]" class="btn btn-sm btn-primary">Generate Docs</a>
-                <a [routerLink]="['/history', project.id]" class="btn btn-sm">History</a>
+              <p class="project-description">{{ project.description || 'No description' }}</p>
+              <div class="project-stats">
+                <div class="stat">
+                  <span class="stat-value">{{ project.endpointCount }}</span>
+                  <span class="stat-label">Endpoints</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-value">{{ project.aiProvider }}</span>
+                  <span class="stat-label">AI Provider</span>
+                </div>
+              </div>
+              @if (project.lastGenerated) {
+                <div class="last-generated">
+                  Last generated: {{ formatDate(project.lastGenerated) }}
+                </div>
               }
-              <button class="btn btn-sm btn-danger" (click)="deleteProject(project.id)">Delete</button>
+              <div class="project-actions">
+                <a [routerLink]="['/upload', project.id]" class="btn btn-sm">Upload Code</a>
+                @if (project.endpointCount > 0) {
+                  <a [routerLink]="['/generate', project.id]" class="btn btn-sm btn-primary">Generate Docs</a>
+                  <a [routerLink]="['/history', project.id]" class="btn btn-sm">History</a>
+                }
+                <button class="btn btn-sm btn-danger" (click)="deleteProject(project.id)">Delete</button>
+              </div>
             </div>
-          </div>
-        } @empty {
-          <div class="empty-state">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-              <rect x="12" y="8" width="40" height="48" rx="4" stroke="#cbd5e1" stroke-width="2"/>
-              <path d="M20 20h24M20 28h24M20 36h16" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <h3>No projects yet</h3>
-            <p>Create your first project to start generating API documentation</p>
-            <button class="btn btn-primary" (click)="showCreateModal = true">Create Project</button>
-          </div>
-        }
-      </div>
+          } @empty {
+            <div class="empty-state">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                <rect x="12" y="8" width="40" height="48" rx="4" stroke="#cbd5e1" stroke-width="2"/>
+                <path d="M20 20h24M20 28h24M20 36h16" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <h3>No projects yet</h3>
+              <p>Create your first project to start generating API documentation</p>
+              <button class="btn btn-primary" (click)="showCreateModal.set(true)">Create Project</button>
+            </div>
+          }
+        </div>
+      }
 
-      @if (showCreateModal) {
-        <div class="modal-overlay" (click)="showCreateModal = false">
+      @if (showCreateModal()) {
+        <div class="modal-overlay" (click)="showCreateModal.set(false)">
           <div class="modal" (click)="$event.stopPropagation()">
             <h2>Create New Project</h2>
             <form (ngSubmit)="createProject()">
@@ -91,7 +129,7 @@ import { Project, CreateProjectRequest } from '../../models/project.model';
                 </select>
               </div>
               <div class="modal-actions">
-                <button type="button" class="btn" (click)="showCreateModal = false">Cancel</button>
+                <button type="button" class="btn" (click)="showCreateModal.set(false)">Cancel</button>
                 <button type="submit" class="btn btn-primary">Create Project</button>
               </div>
             </form>
@@ -110,6 +148,59 @@ import { Project, CreateProjectRequest } from '../../models/project.model';
     }
     .dashboard-header h1 { font-size: 28px; font-weight: 700; color: #1e293b; margin: 0; }
     .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+    
+    /* Skeleton styles */
+    .skeleton-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+    }
+    .skeleton-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .skeleton-title {
+      height: 20px;
+      width: 55%;
+      background: #e2e8f0;
+      border-radius: 4px;
+      animation: pulse 1.5s infinite;
+    }
+    .skeleton-badge {
+      height: 20px;
+      width: 60px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      animation: pulse 1.5s infinite;
+    }
+    .skeleton-text {
+      height: 14px;
+      width: 90%;
+      background: #e2e8f0;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      animation: pulse 1.5s infinite;
+    }
+    .skeleton-stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+    .skeleton-stat {
+      height: 36px;
+      width: 80px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    
     .project-card {
       background: white;
       border-radius: 12px;
@@ -238,8 +329,9 @@ import { Project, CreateProjectRequest } from '../../models/project.model';
 })
 export class DashboardComponent implements OnInit {
   projects: Project[] = [];
-  showCreateModal = false;
+  showCreateModal = signal(false);
   newProject: CreateProjectRequest = { name: '', description: '', aiProvider: 'mock' };
+  isLoading = signal(true);
 
   constructor(private apiService: ApiService) {}
 
@@ -248,16 +340,23 @@ export class DashboardComponent implements OnInit {
   }
 
   loadProjects() {
+    this.isLoading.set(true);
     this.apiService.getProjects().subscribe({
-      next: (projects) => this.projects = projects,
-      error: (err) => console.error('Failed to load projects', err)
+      next: (projects) => {
+        this.projects = projects;
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load projects', err);
+        this.isLoading.set(false);
+      }
     });
   }
 
   createProject() {
     this.apiService.createProject(this.newProject).subscribe({
       next: () => {
-        this.showCreateModal = false;
+        this.showCreateModal.set(false);
         this.newProject = { name: '', description: '', aiProvider: 'mock' };
         this.loadProjects();
       },

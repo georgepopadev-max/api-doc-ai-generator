@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, OnDestroy, ElementRef, ViewChild, sig
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ExportService } from '../../services/export.service';
 import { ApiService } from '../../services/api.service';
 import { GeneratedDoc } from '../../models/project.model';
@@ -12,7 +13,7 @@ declare const monaco: any;
 @Component({
   selector: 'app-editor',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, MatSnackBarModule],
   template: `
     <div class="editor-container">
       <header class="editor-header">
@@ -185,7 +186,8 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   isLoading = signal(true);
 
   constructor(private route: ActivatedRoute, private router: Router, 
-              private exportService: ExportService, private apiService: ApiService) {}
+              private exportService: ExportService, private apiService: ApiService,
+              private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.docId = this.route.snapshot.paramMap.get('docId') || '';
@@ -316,8 +318,10 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
   downloadSpec() {
     if (this.format === 'yaml') {
       this.exportService.downloadYaml(this.docId, 'openapi.yaml');
+      this.snackBar.open('YAML file downloaded successfully', 'Close', { duration: 3000 });
     } else {
       this.exportService.downloadJson(this.docId, 'openapi.json');
+      this.snackBar.open('JSON file downloaded successfully', 'Close', { duration: 3000 });
     }
   }
 
@@ -333,8 +337,12 @@ export class EditorComponent implements OnInit, AfterViewInit, OnDestroy {
     this.exportService.updateSpec(this.docId, this.specContent).subscribe({
       next: () => {
         this.originalContent = this.specContent;
+        this.snackBar.open('Documentation saved successfully', 'Close', { duration: 3000 });
       },
-      error: (err) => console.error('Failed to save', err)
+      error: (err) => {
+        console.error('Failed to save', err);
+        this.snackBar.open('Failed to save documentation', 'Close', { duration: 3000 });
+      }
     });
   }
 

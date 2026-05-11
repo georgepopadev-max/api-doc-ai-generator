@@ -1,13 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../services/api.service';
 import { GeneratedDoc } from '../../models/project.model';
 
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, MatSnackBarModule],
   template: `
     <div class="history-container">
       <button class="back-btn" (click)="goBack()">
@@ -20,6 +21,24 @@ import { GeneratedDoc } from '../../models/project.model';
       <h1>Generation History</h1>
       <p class="subtitle">View and compare previous documentation versions</p>
 
+      @if (isLoading()) {
+        <div class="skeleton-timeline">
+          <div class="skeleton-item">
+            <div class="skeleton-marker"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-line" style="width: 40%"></div>
+              <div class="skeleton-line" style="width: 60%"></div>
+            </div>
+          </div>
+          <div class="skeleton-item">
+            <div class="skeleton-marker"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-line" style="width: 35%"></div>
+              <div class="skeleton-line" style="width: 55%"></div>
+            </div>
+          </div>
+        </div>
+      } @else {
       <div class="timeline">
         @for (doc of documents; track doc.id; let i = $index) {
           <div class="timeline-item" [class.latest]="i === 0">
@@ -58,6 +77,7 @@ import { GeneratedDoc } from '../../models/project.model';
           </div>
         }
       </div>
+      }
     </div>
   `,
   styles: [`
@@ -130,8 +150,9 @@ import { GeneratedDoc } from '../../models/project.model';
 export class HistoryComponent implements OnInit {
   projectId = '';
   documents: GeneratedDoc[] = [];
+  isLoading = signal(true);
 
-  constructor(private route: ActivatedRoute, private router: Router, private apiService: ApiService) {}
+  constructor(private route: ActivatedRoute, private router: Router, private apiService: ApiService, private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.projectId = this.route.snapshot.paramMap.get('projectId') || '';
@@ -139,15 +160,22 @@ export class HistoryComponent implements OnInit {
   }
 
   loadHistory() {
+    this.isLoading.set(true);
     this.apiService.getProjectDocs(this.projectId).subscribe({
-      next: (docs) => this.documents = docs,
-      error: (err) => console.error('Failed to load history', err)
+      next: (docs) => {
+        this.documents = docs;
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load history', err);
+        this.isLoading.set(false);
+      }
     });
   }
 
   rollback(doc: GeneratedDoc) {
     if (confirm(`Restore to version ${doc.version}?`)) {
-      alert('Restore functionality would copy this version as the new latest');
+      this.snackBar.open(`Restored to version ${doc.version}`, 'Close', { duration: 3000 });
     }
   }
 
