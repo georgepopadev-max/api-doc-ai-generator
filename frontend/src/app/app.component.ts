@@ -2,12 +2,14 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { DemoBannerComponent } from './components/demo-banner/demo-banner.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink],
+  imports: [CommonModule, RouterOutlet, RouterLink, DemoBannerComponent],
   template: `
+    <app-demo-banner></app-demo-banner>
     <div class="app-container">
       <nav class="top-nav">
         <div class="nav-brand">

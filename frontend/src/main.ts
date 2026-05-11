@@ -1,6 +1,6 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { DashboardComponent } from './app/features/dashboard/dashboard.component';
@@ -10,8 +10,9 @@ import { EditorComponent } from './app/features/editor/editor.component';
 import { HistoryComponent } from './app/features/history/history.component';
 import { environment } from './environments/environment';
 import { mockInterceptor } from './app/services/mock-interceptor';
+import type { ApplicationConfig } from '@angular/core';
 
-const providers: any[] = [
+const providers: ApplicationConfig['providers'] = [
   provideAnimations(),
   provideRouter([
     { path: '', component: DashboardComponent },
