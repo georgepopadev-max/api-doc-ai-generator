@@ -1,74 +1,81 @@
 package com.apidocgen.controller;
 
-import com.apidocgen.dto.*;
-import com.apidocgen.service.ProjectService;
-import com.apidocgen.service.GenerationService;
+import com.apidocgen.entity.DocProject;
+import com.apidocgen.entity.SourceUpload;
+import com.apidocgen.repository.DocProjectRepository;
+import com.apidocgen.repository.SourceUploadRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/projects")
+@RequestMapping("/api")
 @CrossOrigin(origins = "*")
 public class ProjectController {
-    
-    private final ProjectService projectService;
-    private final GenerationService generationService;
-    
-    public ProjectController(ProjectService projectService, GenerationService generationService) {
-        this.projectService = projectService;
-        this.generationService = generationService;
+
+    private final DocProjectRepository projectRepository;
+    private final SourceUploadRepository uploadRepository;
+
+    public ProjectController(DocProjectRepository projectRepository, SourceUploadRepository uploadRepository) {
+        this.projectRepository = projectRepository;
+        this.uploadRepository = uploadRepository;
     }
-    
-    @GetMapping
-    public List<ProjectDto> getAllProjects() {
-        return projectService.getAllProjects();
+
+    @GetMapping("/projects")
+    public ResponseEntity<List<DocProject>> getAllProjects() {
+        return ResponseEntity.ok(projectRepository.findAll());
     }
-    
-    @GetMapping("/{id}")
-    public ProjectDto getProject(@PathVariable UUID id) {
-        return projectService.getProject(id);
+
+    @GetMapping("/projects/{id}")
+    public ResponseEntity<DocProject> getProject(@PathVariable Long id) {
+        return projectRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
-    
-    @PostMapping
-    public ProjectDto createProject(@RequestBody CreateProjectRequest request) {
-        return projectService.createProject(request);
+
+    @PostMapping("/projects")
+    public ResponseEntity<DocProject> createProject(@RequestBody Map<String, String> body) {
+        DocProject project = new DocProject();
+        project.setName(body.get("name"));
+        project.setDescription(body.get("description"));
+        project.setFramework(body.getOrDefault("framework", "SPRING"));
+        return ResponseEntity.ok(projectRepository.save(project));
     }
-    
-    @PutMapping("/{id}")
-    public ProjectDto updateProject(@PathVariable UUID id, 
-                                    @RequestParam(required = false) String name,
-                                    @RequestParam(required = false) String description) {
-        return projectService.updateProject(id, name, description);
+
+    @PutMapping("/projects/{id}")
+    public ResponseEntity<DocProject> updateProject(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return projectRepository.findById(id).map(project -> {
+            project.setName(body.getOrDefault("name", project.getName()));
+            project.setDescription(body.getOrDefault("description", project.getDescription()));
+            project.setFramework(body.getOrDefault("framework", project.getFramework()));
+            project.setStatus(body.getOrDefault("status", project.getStatus()));
+            return ResponseEntity.ok(projectRepository.save(project));
+        }).orElse(ResponseEntity.notFound().build());
     }
-    
-    @DeleteMapping("/{id}")
-    public void deleteProject(@PathVariable UUID id) {
-        projectService.deleteProject(id);
+
+    @DeleteMapping("/projects/{id}")
+    public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
+        projectRepository.deleteById(id);
+        return ResponseEntity.ok().build();
     }
-    
-    @PostMapping("/{id}/upload")
-    public SourceUploadDto uploadSource(@PathVariable UUID id, 
-                                       @RequestBody SourceUploadRequest request) {
-        return projectService.addSourceUpload(id, request.filename(), request.fileSize(), request.sourceCode());
+
+    @PostMapping("/projects/{id}/upload")
+    public ResponseEntity<SourceUpload> uploadSource(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        return projectRepository.findById(id).map(project -> {
+            SourceUpload upload = new SourceUpload();
+            upload.setProject(project);
+            upload.setFilename((String) body.get("filename"));
+            upload.setFileSize(((Number) body.get("fileSize")).longValue());
+            upload.setSourceCode((String) body.get("sourceCode"));
+            upload.setLanguage((String) body.getOrDefault("language", "JAVA"));
+            return ResponseEntity.ok(uploadRepository.save(upload));
+        }).orElse(ResponseEntity.notFound().build());
     }
-    
-    @GetMapping("/{id}/uploads")
-    public List<SourceUploadDto> getUploads(@PathVariable UUID id) {
-        return projectService.getProjectUploads(id);
-    }
-    
-    @GetMapping("/{id}/docs")
-    public List<GeneratedDocDto> getDocs(@PathVariable UUID id) {
-        return projectService.getProjectDocs(id);
-    }
-    
-    @GetMapping("/{id}/docs/latest")
-    public GeneratedDocDto getLatestDoc(@PathVariable UUID id) {
-        return projectService.getLatestDoc(id);
+
+    @GetMapping("/projects/{id}/uploads")
+    public ResponseEntity<List<SourceUpload>> getProjectUploads(@PathVariable Long id) {
+        return ResponseEntity.ok(uploadRepository.findByProjectId(id));
     }
 }
-
-record SourceUploadRequest(String filename, long fileSize, String sourceCode) {}
